@@ -15,3 +15,6 @@ def convert_to_int(value, default = None):
         return int(value)
     except:
         return default
+    
+def process_string(text):
+    return text.strip().encode('utf-8').upper()
