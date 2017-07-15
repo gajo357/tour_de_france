@@ -4,7 +4,6 @@ Created on Jun 30, 2017
 @author: Gajo
 '''
 import pandas as pd
-import numpy as np
 from sklearn.naive_bayes import GaussianNB
 from sklearn.externals import joblib
 from sklearn.cross_validation import KFold
@@ -16,14 +15,24 @@ from sklearn.linear_model import LinearRegression, RidgeCV
 from sklearn.neighbors import KNeighborsRegressor, KNeighborsClassifier
 from sklearn.svm import LinearSVR, SVC
 
-features = ['stage_length', 'stage_type']
-label = 'time'
+features = ['season', 'race_class', 'race_length', 'race_day', 'stage_length', 'stage_type']
+label = 'position'
 
+def create_cluster(position):
+    if position <= 15:
+        return 15
+    if position < 50:
+        return 50
+    if position < 100:
+        return 100
+    return 200
+    
 def load_data():
     data = pd.read_csv('results_df.csv')
     useful = list(features)
     useful.append('rider_id')
     useful.append(label)
+    data['position'] = data['position'].apply(lambda x: create_cluster(x))
     
     data = data[useful]
     data.dropna(axis=0, how='any', inplace=True)
@@ -70,24 +79,23 @@ def train_different():
     model = LinearSVR(epsilon=0, C=10.0, random_state=0)
     validate_model(model, X, y, features_train, labels_train, features_test, labels_test)
     
-def train_different_clf():
-    data = load_data()
+def train_different_clf(data):
     
     X = data.as_matrix(features)
     y = data[label].values
     ### split the data
-    features_train, features_test, labels_train, labels_test = train_test_split(X, y, test_size = 0.3, random_state = 42)
+    features_train, features_test, labels_train, labels_test = train_test_split(X, y, test_size = 0.2, random_state = 42)
     
     
     print('NB')
     model = GaussianNB()
     validate_model(model, X, y, features_train, labels_train, features_test, labels_test)
     
-    print('DTR')
+    print('DTC')
     model = DecisionTreeClassifier()
     validate_model(model, X, y, features_train, labels_train, features_test, labels_test)
     
-    print('ETR')
+    print('ETC')
     model = ExtraTreeClassifier()
     validate_model(model, X, y, features_train, labels_train, features_test, labels_test)
     
@@ -95,9 +103,9 @@ def train_different_clf():
     model = KNeighborsClassifier()
     validate_model(model, X, y, features_train, labels_train, features_test, labels_test)
       
-    print('SVC')
-    model = SVC()
-    validate_model(model, X, y, features_train, labels_train, features_test, labels_test)
+    #print('SVC')
+    #model = SVC()
+    #validate_model(model, X, y, features_train, labels_train, features_test, labels_test)
     
 def train_model_dtr():
     data = load_data()
@@ -206,7 +214,7 @@ def train_model_KnClf():
     parameters = {'n_neighbors': [5, 100, 200], 
                   'weights': ['uniform'],
                   'algorithm' : ['auto'],
-                  'leaf_size': [1]}
+                  'leaf_size': [1, 5, 40]}
     
     reg = GridSearchCV(KNeighborsClassifier(), parameters)
     #validate_model(reg, X, y, features_train, labels_train, features_test, labels_test)
@@ -230,14 +238,14 @@ def train_model(model_creator, save_model):
     for rider_id in riders['id']:
         print(rider_id)
         rider_df = data[data['rider_id'] == rider_id]
-        if len(rider_df[label]) < 5:
+        if len(rider_df[label]) < 50:
             print()
             continue
         
         X = rider_df.as_matrix(features)
         y = rider_df[label].values
         
-        features_train, features_test, labels_train, labels_test = train_test_split(X, y, test_size = 0.2, random_state = 42)
+        features_train, features_test, labels_train, labels_test = train_test_split(X, y, test_size = 0.1, random_state = 0)
         
         reg = model_creator()
         reg.fit(features_train, labels_train) 
@@ -252,5 +260,24 @@ def train_model(model_creator, save_model):
     
     pass
 
+
+def train_diff_model():
+    data = load_data()
+    riders = pd.read_csv('riders_w_cost.csv')
+    
+    for rider_id in riders['id']:
+        print(rider_id)
+        rider_df = data[data['rider_id'] == rider_id]
+        if len(rider_df[label]) < 50:
+            print()
+            continue
+        
+        train_different_clf(rider_df)        
+    
+    pass
+
+
 if __name__ == '__main__':
-    train_model(lambda: RidgeCV(), True)
+    #train_model_KnClf()
+    #train_diff_model()
+    train_model(lambda: GaussianNB(), True)

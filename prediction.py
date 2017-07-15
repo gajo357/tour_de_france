@@ -11,6 +11,9 @@ import os.path
 
 def read_stages():
     tdf_stages = pd.read_csv('tdf_stages.csv')
+    tdf_stages['season'] = tdf_stages['race_class'].apply(lambda x: 2017)
+    tdf_stages['race_length'] = tdf_stages['race_day'].apply(lambda x: 21)
+    tdf_stages['race_day'] = tdf_stages['race_day'].apply(lambda x: int(21*x))
     
     return tdf_stages.as_matrix(features)
     
@@ -39,14 +42,23 @@ def predict_results():
         p_by_rider[rider_id] = predictions
         for j in range(0, len(predictions)):
             if j not in p_by_stage:
-                p_by_stage[j] = {}
-            p_by_stage[j][rider_name] = predictions[j]
+                p_by_stage[j] = []
+            p_by_stage[j].append((rider_name, predictions[j]))
     
         all_points = np.sum(predictions)/(60*60) # avg time in hours
         values.append([rider_name, all_points, rider_cost, 1.0/(rider_cost/1000000*all_points)])
     
-    results = pd.DataFrame.from_dict(p_by_stage, orient='index')
-    results.to_csv('pred_by_stage.csv')
+    with open("Output.csv", "w") as text_file:
+        for s, r in p_by_stage.items():
+            text_file.write("\n")
+            sorted_by_result = sorted(r, key=lambda x: x[1])
+            text_file.write("Stage: {0}\n".format(s))
+            for rinfo in sorted_by_result:
+                text_file.write("{0},{1}\n".format(rinfo[0], rinfo[1]))
+                
+        
+    #results = pd.DataFrame(p_by_stage, orient='index')
+    #results.to_csv('pred_by_stage.csv')
     
     df = pd.DataFrame(values, columns=['rider_name', 'points', 'cost', 'value_for_money'])
     df.sort_values('value_for_money', axis=0, ascending=False, inplace=True)

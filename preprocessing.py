@@ -26,10 +26,11 @@ def create_columns(stage_id, stages_df, races_df):
     
     race_row = races_df[races_df['id'] == race_id].iloc[0]
     race_length = race_row['no_stages']
-    dayratio = 1.0 * day/race_length
+    #dayratio = 1.0 * day/race_length
     race_class = race_row['class']
+    season = race_row['season']
     
-    return race_class, dayratio, stage_length, stage_type 
+    return season, race_class, race_length, day, stage_length, stage_type 
 
 def preprocess_data():
     riders_df = pd.read_csv('riders.csv')
@@ -38,7 +39,7 @@ def preprocess_data():
     results_df = pd.read_csv('results.csv')
         
     #print(results_df.head())
-    results_df['race_class'], results_df['race_day'], results_df['stage_length'], results_df['stage_type'] = \
+    results_df['season'], results_df['race_class'], results_df['race_length'], results_df['race_day'], results_df['stage_length'], results_df['stage_type'] = \
         zip(*results_df['stage_id'].map(lambda stage_id: create_columns(stage_id, stages_df, races_df)))
     
     #print(results_df.head())
@@ -117,4 +118,4 @@ def transform_tdf_stages():
     pass
 
 if __name__ == '__main__':
-    transform_tdf_stages()
+    preprocess_data()
